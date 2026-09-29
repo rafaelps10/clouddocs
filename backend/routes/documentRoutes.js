@@ -5,12 +5,15 @@ const router = express.Router();
 const {
     getDocuments,
     createDocument,
-    deleteDocument
+    deleteDocument,
+    updateDocument
 } = require("../controllers/documentController");
 
 router.get("/", getDocuments);
 
 router.post("/", createDocument);
+
+router.put("/:id", updateDocument);
 
 router.delete("/:id", deleteDocument);
 

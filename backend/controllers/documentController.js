@@ -106,8 +106,67 @@ const deleteDocument = async (req, res) => {
     }
 };
 
+const updateDocument = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const {
+            filename,
+            file_type,
+            file_size,
+            s3_key
+        } = req.body;
+
+        if (!filename) {
+            return res.status(400).json({
+                error: "filename é obrigatório"
+            });
+        }
+
+        const result = await pool.query(`
+            UPDATE documents
+            SET
+                filename = $1,
+                file_type = $2,
+                file_size = $3,
+                s3_key = $4
+            WHERE id = $5
+            RETURNING
+                id,
+                user_id,
+                filename,
+                file_type,
+                file_size,
+                s3_key,
+                created_at
+        `, [
+            filename,
+            file_type,
+            file_size,
+            s3_key,
+            id
+        ]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                error: "Documento não encontrado"
+            });
+        }
+
+        res.json(result.rows[0]);
+
+    } catch (error) {
+        console.error("Erro ao atualizar documento:", error.message);
+
+        res.status(500).json({
+            error: "Erro ao atualizar documento"
+        });
+    }
+};
+
 module.exports = {
     getDocuments,
     createDocument,
-    deleteDocument
+    deleteDocument,
+    updateDocument
 };
