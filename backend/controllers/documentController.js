@@ -2,6 +2,8 @@ const pool = require("../db");
 
 const getDocuments = async (req, res) => {
     try {
+        const userId = req.user.userId;
+
         const result = await pool.query(`
             SELECT
                 id,
@@ -11,10 +13,12 @@ const getDocuments = async (req, res) => {
                 s3_key,
                 created_at
             FROM documents
+            WHERE user_id = $1
             ORDER BY created_at DESC
-        `);
+        `, [userId]);
 
         res.json(result.rows);
+
     } catch (error) {
         console.error("Erro ao buscar documentos:", error.message);
 
@@ -26,17 +30,18 @@ const getDocuments = async (req, res) => {
 
 const createDocument = async (req, res) => {
     try {
+        const userId = req.user.userId;
+
         const {
-            user_id,
             filename,
             file_type,
             file_size,
             s3_key
         } = req.body;
 
-        if (!user_id || !filename) {
+        if (!filename) {
             return res.status(400).json({
-                error: "user_id e filename são obrigatórios"
+                error: "filename é obrigatório"
             });
         }
 
@@ -58,7 +63,7 @@ const createDocument = async (req, res) => {
                 s3_key,
                 created_at
         `, [
-            user_id,
+            userId,
             filename,
             file_type,
             file_size,
@@ -78,13 +83,18 @@ const createDocument = async (req, res) => {
 
 const deleteDocument = async (req, res) => {
     try {
+        const userId = req.user.userId;
         const { id } = req.params;
 
         const result = await pool.query(`
             DELETE FROM documents
             WHERE id = $1
+            AND user_id = $2
             RETURNING id, filename
-        `, [id]);
+        `, [
+            id,
+            userId
+        ]);
 
         if (result.rows.length === 0) {
             return res.status(404).json({
@@ -108,6 +118,7 @@ const deleteDocument = async (req, res) => {
 
 const updateDocument = async (req, res) => {
     try {
+        const userId = req.user.userId;
         const { id } = req.params;
 
         const {
@@ -131,6 +142,7 @@ const updateDocument = async (req, res) => {
                 file_size = $3,
                 s3_key = $4
             WHERE id = $5
+            AND user_id = $6
             RETURNING
                 id,
                 user_id,
@@ -144,7 +156,8 @@ const updateDocument = async (req, res) => {
             file_type,
             file_size,
             s3_key,
-            id
+            id,
+            userId
         ]);
 
         if (result.rows.length === 0) {

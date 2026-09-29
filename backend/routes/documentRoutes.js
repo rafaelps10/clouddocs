@@ -9,12 +9,11 @@ const {
     updateDocument
 } = require("../controllers/documentController");
 
-router.get("/", getDocuments);
+const authMiddleware = require("../middleware/authMiddleware");
 
-router.post("/", createDocument);
-
-router.put("/:id", updateDocument);
-
-router.delete("/:id", deleteDocument);
+router.get("/", authMiddleware, getDocuments);
+router.post("/", authMiddleware, createDocument);
+router.put("/:id", authMiddleware, updateDocument);
+router.delete("/:id", authMiddleware, deleteDocument);
 
 module.exports = router;

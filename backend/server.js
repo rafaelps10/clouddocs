@@ -1,6 +1,7 @@
 const express = require("express");
 
 const documentRoutes = require("./routes/documentRoutes");
+const authRoutes = require("./routes/auth/authRoutes");
 
 const app = express();
 
@@ -16,7 +17,8 @@ app.get("/api/health", (req, res) => {
 });
 
 app.use("/api/documents", documentRoutes);
+app.use("/api/auth", authRoutes);
 
 app.listen(PORT, () => {
     console.log(`CloudDocs API rodando em http://localhost:${PORT}`);
-});                             
+});
