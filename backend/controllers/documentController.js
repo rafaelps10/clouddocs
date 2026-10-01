@@ -1,5 +1,11 @@
 const pool = require("../db");
 
+const crypto = require("crypto");
+
+const {
+    uploadFile
+} = require("../services/s3Service");
+
 const getDocuments = async (req, res) => {
     try {
         const userId = req.user.userId;
@@ -177,9 +183,76 @@ const updateDocument = async (req, res) => {
     }
 };
 
+const uploadDocument = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+
+        if (!req.file) {
+            return res.status(400).json({
+                error: "Arquivo é obrigatório"
+            });
+        }
+
+        const {
+            originalname,
+            mimetype,
+            size,
+            buffer
+        } = req.file;
+
+        const fileId = crypto.randomUUID();
+
+        const s3Key = `users/${userId}/documents/${fileId}-${originalname}`;
+
+        await uploadFile({
+            key: s3Key,
+            body: buffer,
+            contentType: mimetype
+        });
+
+        const result = await pool.query(`
+            INSERT INTO documents (
+                user_id,
+                filename,
+                file_type,
+                file_size,
+                s3_key
+            )
+            VALUES ($1, $2, $3, $4, $5)
+            RETURNING
+                id,
+                user_id,
+                filename,
+                file_type,
+                file_size,
+                s3_key,
+                created_at
+        `, [
+            userId,
+            originalname,
+            mimetype,
+            size,
+            s3Key
+        ]);
+
+        res.status(201).json({
+            message: "Documento enviado com sucesso",
+            document: result.rows[0]
+        });
+
+    } catch (error) {
+        console.error("Erro ao enviar documento:", error.message);
+
+        res.status(500).json({
+            error: "Erro ao enviar documento"
+        });
+    }
+};
+
 module.exports = {
     getDocuments,
     createDocument,
+    uploadDocument,
     deleteDocument,
     updateDocument
 };
