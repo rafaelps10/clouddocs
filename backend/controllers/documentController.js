@@ -3,7 +3,8 @@ const pool = require("../db");
 const crypto = require("crypto");
 
 const {
-    uploadFile
+    uploadFile,
+    downloadFile
 } = require("../services/s3Service");
 
 const getDocuments = async (req, res) => {
@@ -249,10 +250,59 @@ const uploadDocument = async (req, res) => {
     }
 };
 
+
+const downloadDocument = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const { id } = req.params;
+
+        const result = await pool.query(`
+            SELECT filename, file_type, s3_key
+            FROM documents
+            WHERE id = $1
+                AND user_id = $2
+        `, [id, userId]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                error: "Documento não encontrado"
+            });
+        }
+
+        const document = result.rows[0];
+
+        const file = await downloadFile({
+            key: document.s3_key
+        });
+
+        res.setHeader(
+            "Content-Type",
+            document.file_type || "application/octet-stream"
+        );
+
+        res.setHeader(
+            "Content-Disposition",
+            `attachment; filename="${encodeURIComponent(document.filename)}"`
+        );
+
+        file.Body.pipe(res);
+
+    } catch (error) {
+        console.error("Erro ao baixar documento:", error.message);
+
+        if (!res.headersSent) {
+            res.status(500).json({
+                error: "Erro ao baixar documento"
+            });
+        }
+    }
+};
+
 module.exports = {
     getDocuments,
     createDocument,
     uploadDocument,
+    downloadDocument,
     deleteDocument,
     updateDocument
 };

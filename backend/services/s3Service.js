@@ -1,5 +1,6 @@
 const {
-    PutObjectCommand
+    PutObjectCommand,
+    GetObjectCommand
 } = require("@aws-sdk/client-s3");
 
 const s3 = require("../config/s3");
@@ -23,6 +24,18 @@ const uploadFile = async ({
     return response;
 };
 
+const downloadFile = async ({ key }) => {
+    const command = new GetObjectCommand({
+        Bucket: BUCKET_NAME,
+        Key: key
+    });
+
+    const response = await s3.send(command);
+
+    return response;
+};
+
 module.exports = {
-    uploadFile
+    uploadFile,
+    downloadFile
 };

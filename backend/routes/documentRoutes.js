@@ -6,6 +6,7 @@ const {
     getDocuments,
     createDocument,
     uploadDocument,
+    downloadDocument,
     deleteDocument,
     updateDocument
 } = require("../controllers/documentController");
@@ -14,6 +15,12 @@ const authMiddleware = require("../middleware/authMiddleware");
 const upload = require("../middleware/uploadMiddleware");
 
 router.get("/", authMiddleware, getDocuments);
+
+router.get(
+    "/:id/download",
+    authMiddleware,
+    downloadDocument
+);
 
 router.post("/", authMiddleware, createDocument);
 
