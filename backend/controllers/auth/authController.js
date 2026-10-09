@@ -27,8 +27,7 @@ const register = async (req, res) => {
             });
         }
 
-        const hash = await bcrypt.hash("Teste123!CloudDocs", 10);
-        console.log(hash);
+        const hash = await bcrypt.hash(password, 10);
 
         const result = await pool.query(`
             INSERT INTO users (
