@@ -38,15 +38,9 @@ const getDocuments = async (req, res) => {
 const createDocument = async (req, res) => {
     try {
         const userId = req.user.userId;
+        const { filename, file_type, file_size } = req.body;
 
-        const {
-            filename,
-            file_type,
-            file_size,
-            s3_key
-        } = req.body;
-
-        if (!filename) {
+        if (!filename || typeof filename !== "string" || !filename.trim()) {
             return res.status(400).json({
                 error: "filename é obrigatório"
             });
@@ -57,10 +51,9 @@ const createDocument = async (req, res) => {
                 user_id,
                 filename,
                 file_type,
-                file_size,
-                s3_key
+                file_size
             )
-            VALUES ($1, $2, $3, $4, $5)
+            VALUES ($1, $2, $3, $4)
             RETURNING
                 id,
                 user_id,
@@ -71,10 +64,9 @@ const createDocument = async (req, res) => {
                 created_at
         `, [
             userId,
-            filename,
-            file_type,
-            file_size,
-            s3_key
+            filename.trim(),
+            file_type ?? null,
+            file_size ?? null
         ]);
 
         res.status(201).json(result.rows[0]);
@@ -127,15 +119,9 @@ const updateDocument = async (req, res) => {
     try {
         const userId = req.user.userId;
         const { id } = req.params;
+        const { filename } = req.body;
 
-        const {
-            filename,
-            file_type,
-            file_size,
-            s3_key
-        } = req.body;
-
-        if (!filename) {
+        if (!filename || typeof filename !== "string" || !filename.trim()) {
             return res.status(400).json({
                 error: "filename é obrigatório"
             });
@@ -143,13 +129,9 @@ const updateDocument = async (req, res) => {
 
         const result = await pool.query(`
             UPDATE documents
-            SET
-                filename = $1,
-                file_type = $2,
-                file_size = $3,
-                s3_key = $4
-            WHERE id = $5
-            AND user_id = $6
+            SET filename = $1
+            WHERE id = $2
+                AND user_id = $3
             RETURNING
                 id,
                 user_id,
@@ -159,10 +141,7 @@ const updateDocument = async (req, res) => {
                 s3_key,
                 created_at
         `, [
-            filename,
-            file_type,
-            file_size,
-            s3_key,
+            filename.trim(),
             id,
             userId
         ]);
