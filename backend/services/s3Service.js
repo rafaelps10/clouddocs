@@ -1,6 +1,7 @@
 const {
     PutObjectCommand,
-    GetObjectCommand
+    GetObjectCommand,
+    DeleteObjectCommand
 } = require("@aws-sdk/client-s3");
 
 const s3 = require("../config/s3");
@@ -35,7 +36,19 @@ const downloadFile = async ({ key }) => {
     return response;
 };
 
+const deleteFile = async ({ key }) => {
+    const command = new DeleteObjectCommand({
+        Bucket: BUCKET_NAME,
+        Key: key
+    });
+
+    const response = await s3.send(command);
+
+    return response;
+};
+
 module.exports = {
     uploadFile,
-    downloadFile
+    downloadFile,
+    deleteFile
 };

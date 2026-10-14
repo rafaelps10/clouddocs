@@ -4,7 +4,8 @@ const crypto = require("crypto");
 
 const {
     uploadFile,
-    downloadFile
+    downloadFile,
+    deleteFile
 } = require("../services/s3Service");
 
 const getDocuments = async (req, res) => {
@@ -80,20 +81,40 @@ const createDocument = async (req, res) => {
     }
 };
 
+
 const deleteDocument = async (req, res) => {
     try {
         const userId = req.user.userId;
         const { id } = req.params;
 
+        // 1. Busca o documento e confirma que pertence ao usuário.
+        const documentResult = await pool.query(`
+            SELECT id, filename, s3_key
+            FROM documents
+            WHERE id = $1
+                AND user_id = $2
+        `, [id, userId]);
+
+        if (documentResult.rows.length === 0) {
+            return res.status(404).json({
+                error: "Documento não encontrado"
+            });
+        }
+
+        const document = documentResult.rows[0];
+
+        // 2. Se houver um arquivo associado, solicita sua exclusão no S3.
+        if (document.s3_key) {
+            await deleteFile({ key: document.s3_key });
+        }
+
+        // 3. Remove o registro do banco somente após a etapa anterior.
         const result = await pool.query(`
             DELETE FROM documents
             WHERE id = $1
-            AND user_id = $2
+                AND user_id = $2
             RETURNING id, filename
-        `, [
-            id,
-            userId
-        ]);
+        `, [id, userId]);
 
         if (result.rows.length === 0) {
             return res.status(404).json({
@@ -101,19 +122,20 @@ const deleteDocument = async (req, res) => {
             });
         }
 
-        res.json({
-            message: "Documento excluído com sucesso",
+        return res.json({
+            message: "Documento e registro excluídos com sucesso",
             document: result.rows[0]
         });
 
     } catch (error) {
         console.error("Erro ao excluir documento:", error.message);
 
-        res.status(500).json({
+        return res.status(500).json({
             error: "Erro ao excluir documento"
         });
     }
 };
+
 
 const updateDocument = async (req, res) => {
     try {
